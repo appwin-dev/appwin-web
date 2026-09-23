@@ -1,0 +1,62 @@
+{
+  "name": "@appwin/web",
+  "version": "0.7.0",
+  "description": "Appwin Web SDK - the Support messenger, embeddable on any site.",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "source": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "!**/*.test.ts",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsup",
+    "dev": "rm -rf dist && tsup --watch",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test 'src/**/*.test.ts'"
+  },
+  "keywords": [
+    "appwin",
+    "support",
+    "messenger",
+    "chat",
+    "widget"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/appwin-dev/appwin-web#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/appwin-dev/appwin-web.git"
+  },
+  "bugs": {
+    "url": "https://github.com/appwin-dev/appwin-web/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "preact": "^10.29.8",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.0"
+  }
+}
