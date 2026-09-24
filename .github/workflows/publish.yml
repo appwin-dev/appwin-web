@@ -1,0 +1,131 @@
+name: Publish
+
+# This file lives in the monorepo under `sdk/appwin-web/` and runs only in the
+# published mirror. It fires on the release tag that
+# `sdk/scripts/release.mjs --push` creates.
+#
+# Two destinations, one build:
+#
+# - npm, with NO secret: it trusts this repository through OIDC (trusted
+#   publishing). One-time setup on npmjs.com > @appwin/web > Settings > Trusted
+#   Publisher: GitHub Actions, repository `appwin-dev/appwin-web`, workflow
+#   `publish.yml`.
+# - the CDN (`cdn.appwin.io`, ADR-0046 §2): the two files a studio's page
+#   downloads, under a mutable `v1/` (what the snippet points at) and an
+#   immutable `<version>/` (for a studio that pins). The cache policy travels
+#   with the objects as S3 metadata; the edge relays it. Credentials are the
+#   `appwin-cdn-publish-prod` application from appwin-infra (bucket policy:
+#   write on `appwin-cdn-prod` only), stored as repository secrets
+#   CDN_ACCESS_KEY_ID / CDN_SECRET_ACCESS_KEY.
+
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  id-token: write # OIDC token exchange with npm
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+
+env:
+  CDN_BUCKET: appwin-cdn-prod
+  CDN_ENDPOINT: https://s3.fr-par.scw.cloud
+  CDN_REGION: fr-par
+
+jobs:
+  # Same validation as a pull request: publishing waits for green.
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  npm:
+    needs: checks
+    name: npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+
+      # OIDC publishing needs a recent npm client, whatever the runner image
+      # shipped with.
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      # `prepare` runs the build, so the published tarball carries dist/.
+      # Idempotent on purpose: the first version was published by hand (a
+      # trusted publisher can only be attached to a package that exists), and
+      # re-pushing a tag reruns this job.
+      - name: Install and publish
+        run: |
+          npm install
+          if npm view "@appwin/web@${GITHUB_REF_NAME}" version >/dev/null 2>&1; then
+            echo "@appwin/web@${GITHUB_REF_NAME} is already on npm, nothing to publish"
+            exit 0
+          fi
+          npm publish --provenance --access public
+
+  cdn:
+    needs: checks
+    name: CDN
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build
+        run: npm ci
+
+      # Pinned copy first, so a studio on `<version>/` never sees a `v1/` that
+      # is ahead of what it can pin to. The `Cache-Control` values are the
+      # policy from ADR-0046: a fix reaches pages in 5 minutes on `v1/`, the
+      # edge absorbs the load, and a pinned file never changes by definition.
+      - name: Upload to the CDN
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CDN_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CDN_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          for FILE in appwin.js panel.js; do
+            test -s "dist/${FILE}"
+          done
+
+          upload() {
+            local prefix="$1" cache="$2"
+            for FILE in appwin.js panel.js; do
+              aws s3 cp "dist/${FILE}" "s3://${CDN_BUCKET}/${prefix}/${FILE}" \
+                --endpoint-url "${CDN_ENDPOINT}" --region "${CDN_REGION}" \
+                --content-type 'text/javascript; charset=utf-8' \
+                --cache-control "${cache}" \
+                --metadata-directive REPLACE
+            done
+          }
+
+          upload "${VERSION}" 'public, max-age=31536000, immutable'
+          upload 'v1' 'public, max-age=300, s-maxage=3600, stale-while-revalidate=604800'
+
+      # What a studio's browser gets, through the edge and not the bucket.
+      - name: Check the CDN
+        run: |
+          set -euo pipefail
+          for FILE in appwin.js panel.js; do
+            for PREFIX in "${GITHUB_REF_NAME}" v1; do
+              HEADERS=$(curl -sfI --retry 5 --retry-delay 5 "https://cdn.appwin.io/${PREFIX}/${FILE}")
+              echo "${HEADERS}" | grep -qi '^content-type: text/javascript' \
+                || { echo "${PREFIX}/${FILE}: wrong content-type"; echo "${HEADERS}"; exit 1; }
+              echo "${HEADERS}" | grep -qi '^cache-control:' \
+                || { echo "${PREFIX}/${FILE}: no cache-control"; echo "${HEADERS}"; exit 1; }
+            done
+          done
+          echo "cdn.appwin.io/v1 and /${GITHUB_REF_NAME} serve ${GITHUB_REF_NAME}"
