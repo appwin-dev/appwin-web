@@ -1,0 +1,4 @@
+
+> @appwin/web@0.12.1 typecheck /Users/sowakillian/Desktop/work/les_ignobles/customer_products/appwin-v2/sdk/appwin-web
+> tsc --noEmit
+
