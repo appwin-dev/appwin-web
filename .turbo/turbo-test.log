@@ -1,0 +1,277 @@
+
+> @appwin/web@0.12.1 test /Users/sowakillian/Desktop/work/les_ignobles/customer_products/appwin-v2/sdk/appwin-web
+> node --experimental-strip-types --test 'src/**/*.test.ts'
+
+▶ Breadcrumbs
+  ✔ keeps the last 20 and knows the current screen (1.828208ms)
+✔ Breadcrumbs (2.249291ms)
+▶ CrashQueue
+  ✔ keeps the newest 20 reports (2.102291ms)
+  ✔ is shared through storage, so another tab sees the same reports (0.07925ms)
+  ✔ batches by size, always at least one (0.075666ms)
+  ✔ removes by id (0.113708ms)
+✔ CrashQueue (3.387667ms)
+▶ buildReport
+  ✔ trims frames, then the message, to fit the size cap (40.871375ms)
+  ✔ describes whatever was thrown (1.447375ms)
+✔ buildReport (42.597167ms)
+▶ CrashReporter
+  ✔ stores a report and sends it once uploads are enabled (6.000167ms)
+  ✔ keeps the report when the send fails (0.71525ms)
+  ✔ drops a report the server refused for good (1.835583ms)
+  ✔ captures nothing and purges the queue when consent is denied (0.407584ms)
+  ✔ stores but never sends while consent is unknown (1.330292ms)
+  ✔ drops the same error repeated within the dedupe window (0.704292ms)
+  ✔ stops after the per-page cap (0.411792ms)
+  ✔ clears everything on shutdown (0.079625ms)
+✔ CrashReporter (12.394959ms)
+▶ installCrashHandlers
+  ✔ reports uncaught errors and unhandled rejections as crashes (1.572666ms)
+  ✔ ignores resource load errors (0.160917ms)
+✔ installCrashHandlers (1.8275ms)
+▶ parseStack
+  ✔ reads Chrome and Edge stacks (16.279792ms)
+  ✔ reads Firefox stacks (0.167792ms)
+  ✔ reads Safari stacks (0.088ms)
+  ✔ keeps third-party and dependency code out of the app frames (0.09025ms)
+  ✔ caps the number of frames (1.554208ms)
+  ✔ returns nothing for an empty or unknown stack (3.21975ms)
+✔ parseStack (21.944416ms)
+▶ EventQueue
+  ✔ survives a reload (0.45175ms)
+  ✔ drops the oldest events past the cap (0.411125ms)
+  ✔ cuts batches by count and by bytes (0.101208ms)
+  ✔ always returns at least one event, even oversized (0.068125ms)
+  ✔ removes the sent events only, wherever they now are (0.131083ms)
+  ✔ starts empty from a corrupted entry (0.0615ms)
+✔ EventQueue (2.63175ms)
+▶ Pipeline
+  ✔ opens a session before the first event (3.130375ms)
+  ✔ stamps the duration on session_end (1.082375ms)
+  ✔ uploads nothing until uploads are enabled (0.674542ms)
+  ✔ makes a flush called mid-flight wait for the events queued meanwhile (0.446833ms)
+  ✔ keeps the backlog while consent is unknown, sends it once granted (0.471542ms)
+  ✔ purges and mutes on denied (0.167209ms)
+  ✔ drops the batch and pauses on quota exceeded (0.1635ms)
+  ✔ keeps the batch on a transient failure (0.169541ms)
+  ✔ stops capturing after shutdown (0.085125ms)
+✔ Pipeline (7.230833ms)
+▶ backoffDelay
+  ✔ doubles from 2 s with jitter, capped at 5 min (0.24475ms)
+✔ backoffDelay (0.349542ms)
+▶ parseReplaySettings
+  ✔ masks everything and records every session when the config is missing (2.082583ms)
+  ✔ reads the dashboard settings and ignores malformed ones (0.211458ms)
+✔ parseReplaySettings (3.046708ms)
+▶ isSampled
+  ✔ reads the last 32 bits of the id as a fraction (0.331875ms)
+  ✔ always or never at the bounds (0.134917ms)
+  ✔ spreads sessions started in the same second, which share their leading bits (102.778625ms)
+✔ isSampled (103.512542ms)
+▶ masking
+  ✔ masks every visible character unless an ancestor opts out (0.215958ms)
+  ✔ masks typed text even under an unmask marker (0.059875ms)
+  ✔ selects every text with maskAllText, and editable content always (0.063708ms)
+  ✔ always blocks the widget and marked elements, images per the settings (0.085292ms)
+✔ masking (0.564541ms)
+▶ RecordingState
+  ✔ numbers segments per session and starts over for a new one (0.619875ms)
+  ✔ spends a one hour budget per session (1.260708ms)
+✔ RecordingState (1.945583ms)
+▶ Segment
+  ✔ turns clicks into touches normalized to the viewport (5.196459ms)
+  ✔ caps touches at the contract limit (9.097458ms)
+  ✔ records screens once each, relative to the segment start (0.229416ms)
+  ✔ builds the meta the ingestion route validates (4.596417ms)
+✔ Segment (22.39175ms)
+▶ compressEvents
+  ✔ gzips the events as a JSON array (28.167708ms)
+✔ compressEvents (28.275833ms)
+▶ SegmentShipper
+  ✔ drops a segment still compressing when the recording is discarded (5.076834ms)
+  ✔ claims neither a seq nor budget for an oversized segment (1.678791ms)
+  ✔ numbers segments in cut order, whichever compresses first (0.3585ms)
+  ✔ reports the spent budget, then ships nothing more for the session (0.317084ms)
+✔ SegmentShipper (8.453542ms)
+▶ ReplayUploader
+  ✔ sends segments in order and forgets them once stored or refused (3.389584ms)
+  ✔ keeps a segment the network refused, and stops there (1.393834ms)
+  ✔ stops for good on a 403: queue purged, nothing sent afterwards (0.446041ms)
+  ✔ uses keepalive only while leaving, and only under the browser limit (0.440208ms)
+  ✔ sends at once when the page leaves, instead of waiting out the backoff (1.220375ms)
+[appwin] replay segment refused: Too large
+[appwin] replay segment refused: Bad meta
+  ✔ never queues a segment over the size limit (0.838625ms)
+✔ ReplayUploader (8.82ms)
+▶ createReplaySender
+  ✔ posts the meta and the gzipped events as multipart, with the bearer (19.133791ms)
+  ✔ reads a 403 as replay switched off, a 400 or 413 as a segment to drop, a 503 as a retry (1.881291ms)
+✔ createReplaySender (21.18925ms)
+▶ SessionTracker
+  ✔ opens a session on the first event, then stays quiet (10.137083ms)
+  ✔ ends a stale session at its last activity, not now (0.381833ms)
+  ✔ counts the hidden instant as activity (0.221208ms)
+  ✔ shares the session with another tab through storage (0.2005ms)
+  ✔ forgets the session on reset (0.180709ms)
+✔ SessionTracker (14.17475ms)
+▶ isCustomEventName
+  ✔ accepts snake_case names (0.265458ms)
+  ✔ rejects bad alphabets and reserved names (0.073041ms)
+✔ isCustomEventName (0.704083ms)
+▶ sanitizeProps
+  ✔ keeps scalars and drops everything else (0.359458ms)
+  ✔ truncates strings and caps the count at 20, alphabetically (0.105917ms)
+  ✔ returns undefined when nothing survives (0.169833ms)
+✔ sanitizeProps (1.52675ms)
+▶ sanitizeScreen
+  ✔ caps at 128 characters (0.179541ms)
+✔ sanitizeScreen (0.479791ms)
+▶ uuid7
+  ✔ is a version 7 uuid carrying its timestamp (2.989084ms)
+✔ uuid7 (3.183292ms)
+▶ fetchProductStatus
+  ✔ reads the product and caches it (11.173083ms)
+  ✔ reads several products, with their config, from one request (0.407ms)
+  ✔ treats an absent product as disabled (0.219542ms)
+  ✔ returns null when unreachable with nothing cached (0.118167ms)
+  ✔ throws on a refusal instead of hiding it behind the cache (1.471167ms)
+✔ fetchProductStatus (13.98625ms)
+▶ codeForStatus
+  ✔ separates the two failures a studio must act on differently (0.537042ms)
+  ✔ maps the rest onto something actionable (0.07175ms)
+✔ codeForStatus (1.184833ms)
+▶ AppwinError
+  ✔ marks only the failures worth trying again (0.098291ms)
+✔ AppwinError (0.146417ms)
+▶ request
+  ✔ tells a plan refusal apart from an undeclared origin, both being 403 (80.388292ms)
+  ✔ keeps the server message for other failures (0.181792ms)
+✔ request (80.953042ms)
+▶ Session
+  ✔ opens a session once and reuses the token (28.236ms)
+  ✔ persists the token so a reload does not open a second session (0.479667ms)
+  ✔ keeps the same device id across reloads (0.593084ms)
+  ✔ collapses concurrent callers onto one init request (0.726666ms)
+  ✔ re-opens the session once when the token was revoked (0.680083ms)
+  ✔ does not retry a refused origin: looping would only bury the message (0.370459ms)
+  ✔ rotates the session when the identity changes (0.893292ms)
+  ✔ does not rotate when identify repeats the same user (1.507709ms)
+  ✔ rejects an empty externalId (0.405042ms)
+  ✔ writes the attributes after identifying, on the new session (1.134541ms)
+  ✔ sends only the known attributes (0.507625ms)
+  ✔ keeps the persisted identity when the session is re-opened (1.189459ms)
+  ✔ does not hand an in-flight anonymous session to identify (0.659541ms)
+  ✔ tells listeners when the identity changes, not when it repeats (0.499209ms)
+  ✔ revokes, forgets everything and reopens anonymously on logout (0.710042ms)
+  ✔ logs out locally even when the network is down (3.955791ms)
+  ✔ sends the App ID and the browser platform when opening a session (0.441166ms)
+  ✔ never carries the studio site cookies to our API (0.346333ms)
+  ✔ reports an unreachable API as a network error rather than throwing raw (0.263292ms)
+✔ Session (45.016375ms)
+▶ createStorage
+  ✔ namespaces per app so two apps never read each other (1.195417ms)
+  ✔ falls back to memory when writes are blocked, instead of throwing (0.227334ms)
+  ✔ survives storage being absent entirely (0.113958ms)
+  ✔ probes with a real write, since only writing throws in private mode (0.1ms)
+✔ createStorage (2.376209ms)
+▶ realtime frame handling
+  ✔ reports a new message without inventing a conversation id (0.606125ms)
+  ✔ reads the conversation id on the one event that carries it (0.060958ms)
+  ✔ surfaces the agent typing (0.054417ms)
+  ✔ ignores the echo of the visitor typing, which the SDK sent itself (0.73675ms)
+  ✔ drops frames it must not act on, rather than throwing (0.239083ms)
+✔ realtime frame handling (2.238417ms)
+▶ topic subscription
+  ✔ subscribes to every topic the token grants (92.893834ms)
+  ✔ stays quiet on a token it cannot read, instead of throwing (0.54025ms)
+✔ topic subscription (93.641041ms)
+▶ identity change
+  ✔ reconnects with a token for the new visitor and drops the old socket (3.863083ms)
+✔ identity change (4.002958ms)
+▶ createMailbox
+  ✔ holds messages posted before the panel is ready, in order (0.627834ms)
+  ✔ delivers straight away once opened (0.071125ms)
+  ✔ ignores a second ready (0.059209ms)
+✔ createMailbox (33.757541ms)
+▶ widget bridge
+  ✔ reads the messages each side sends (2.17175ms)
+  ✔ does not let one side speak for the other (0.209417ms)
+  ✔ ignores everything that is not ours (0.138125ms)
+  ✔ refuses a payload whose fields are not what they claim (0.174875ms)
+  ✔ still reads what a cached 0.7 loader sends (0.19275ms)
+  ✔ drops attribute fields it does not know (0.12075ms)
+  ✔ normalises a count rather than trusting it (0.128666ms)
+✔ widget bridge (4.044667ms)
+▶ relative time
+  ✔ climbs the same ladder as the native SDKs (1.195458ms)
+  ✔ falls back to the date once the distance stops meaning anything (52.359542ms)
+  ✔ speaks the visitor language, not ours (0.147042ms)
+  ✔ never reads a clock skew as the future (0.066667ms)
+✔ relative time (55.054834ms)
+▶ day separators
+  ✔ names today and yesterday rather than dating them (0.113375ms)
+  ✔ counts calendar days, not elapsed hours (0.145042ms)
+  ✔ adds the year only when it is not this one (0.282292ms)
+✔ day separators (0.634833ms)
+▶ grouping a thread
+  ✔ turns the API order into reading order (1.589292ms)
+  ✔ holds on an empty thread (0.070333ms)
+✔ grouping a thread (1.748333ms)
+▶ thread preview
+  ✔ says who spoke last (0.1425ms)
+  ✔ names a thread that has no preview yet (0.042625ms)
+✔ thread preview (0.222208ms)
+▶ small formats
+  ✔ reads initials by grapheme, not by code unit (1.366958ms)
+  ✔ writes file sizes for a reader (2.976667ms)
+✔ small formats (4.4105ms)
+▶ brand shades
+  ✔ darkens the way the dashboard does (0.137708ms)
+  ✔ hands back what it cannot read (0.172875ms)
+✔ brand shades (0.355917ms)
+▶ boot
+  ✔ paints nothing when the configuration cannot be read (1.0515ms)
+  ✔ leaves the help centre alone when the studio turned it off (0.359416ms)
+  ✔ keeps the threads it has when a refresh fails (0.292625ms)
+✔ boot (2.541458ms)
+▶ unread
+  ✔ counts only what the studio wrote since the visitor last looked (0.304209ms)
+✔ unread (0.419666ms)
+▶ opening a thread
+  ✔ marks it read, then refreshes the list the badge is computed from (1.174125ms)
+  ✔ drops the thread on the way out (0.292833ms)
+  ✔ ignores a page that lands after the visitor moved on (0.195625ms)
+✔ opening a thread (1.838292ms)
+▶ sending
+  ✔ opens a thread with the first message, since an empty one is refused (0.163416ms)
+  ✔ shows the message without waiting for a refetch (0.398458ms)
+  ✔ refuses to send nothing, and says so when a send fails (0.70325ms)
+✔ sending (1.43775ms)
+▶ typing
+  ✔ tells the agent it started, not that it stopped (0.674416ms)
+  ✔ only shows the indicator for the thread on screen (0.687125ms)
+✔ typing (1.605ms)
+▶ live events
+  ✔ refetches rather than trusting the payload (6.551458ms)
+  ✔ does not disturb the open thread for a change in another one (1.514542ms)
+✔ live events (8.307875ms)
+▶ editing a message
+  ✔ refuses what the server would refuse (0.332334ms)
+  ✔ swaps the message in place, and never an empty body (0.360417ms)
+  ✔ drops an edit in progress when the thread is left (0.120958ms)
+✔ editing a message (0.940875ms)
+▶ deleting a message
+  ✔ takes it out of the thread and refreshes the list it previews (0.299416ms)
+  ✔ leaves the thread alone when the server refuses (0.248166ms)
+✔ deleting a message (0.630917ms)
+▶ reactions
+  ✔ takes the counts from the answer rather than recomputing them (0.237916ms)
+✔ reactions (0.295166ms)
+ℹ tests 165
+ℹ suites 49
+ℹ pass 165
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 700.584209
