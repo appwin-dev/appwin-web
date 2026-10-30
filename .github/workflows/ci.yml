@@ -1,0 +1,50 @@
+name: CI
+
+# Written in the monorepo under `sdk/appwin-web/`, run in the published mirror:
+# GitHub reads workflows from the repository root alone. Same travel mechanism
+# as the other four SDKs.
+#
+# The tests need no dependency at all (Node's own runner, on the TypeScript
+# sources through type stripping), but the install has to happen anyway: the
+# typecheck wants TypeScript, and the build is what proves the three artefacts
+# a studio actually downloads still come out.
+
+on:
+  # Callable as the gate of publish.yml: the registry push waits for green.
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` runs the `prepare` hook, which builds: the typecheck below
+      # therefore covers what is published, not only what is committed.
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # The loader is downloaded on every page of every studio that installs
+      # the widget. A regression that doubles it is a regression nobody
+      # notices, so the budget is checked rather than trusted (ADR-0046).
+      - name: Loader size budget
+        run: |
+          SIZE=$(gzip -c dist/appwin.js | wc -c)
+          echo "loader: ${SIZE} bytes gzipped"
+          test "$SIZE" -le 4096

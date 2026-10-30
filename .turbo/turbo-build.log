@@ -1,0 +1,32 @@
+
+> @appwin/web@1.2.0 build /Users/theochampion/.jarvis/worktrees/Les-Ignobles/appwin-v2/mission-3-essai-grow-15-jours/sdk/appwin-web
+> rm -rf dist && tsup
+
+CLI Building entry: {"appwin":"src/widget/loader.ts","panel":"src/widget/panel.ts"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/theochampion/.jarvis/worktrees/Les-Ignobles/appwin-v2/mission-3-essai-grow-15-jours/sdk/appwin-web/tsup.config.ts
+CLI Building entry: src/index.ts
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/theochampion/.jarvis/worktrees/Les-Ignobles/appwin-v2/mission-3-essai-grow-15-jours/sdk/appwin-web/tsup.config.ts
+CLI Target: es2021
+IIFE Build start
+CLI Target: es2021
+ESM Build start
+CJS Build start
+DTS Build start
+ESM dist/index.js             29.83 KB
+ESM dist/chunk-BOWAT6DK.js    2.28 KB
+ESM dist/recorder-VNDBNWVN.js 78.99 KB
+ESM ⚡️ Build success in 1963ms
+CJS dist/chunk-VNY35CUY.cjs    2.33 KB
+CJS dist/recorder-QFKZQY26.cjs 79.22 KB
+CJS dist/index.cjs             30.20 KB
+CJS ⚡️ Build success in 1970ms
+IIFE dist/appwin.js 7.46 KB
+IIFE dist/panel.js  97.51 KB
+IIFE ⚡️ Build success in 2645ms
+DTS ⚡️ Build success in 3184ms
+DTS dist/index.d.ts  27.55 KB
+DTS dist/index.d.cts 27.55 KB

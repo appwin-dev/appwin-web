@@ -1,0 +1,562 @@
+/*
+ * The messenger's stylesheet, bundled into `panel.js` as a string and
+ * injected into the iframe's document at boot (ADR-0046 §3, amended
+ * 2026-09-23). Inline on purpose: it is the first paint, and a widget that
+ * flashes unstyled on somebody's landing page is a widget they take off the
+ * page. Every colour comes from a variable the studio's configuration sets.
+ */
+:root {
+  --appwin-primary: #1f1f1f;
+  --appwin-primary-foreground: #ffffff;
+  --appwin-radius: 12px;
+  --appwin-page: #f8fafc;
+  --appwin-surface: #ffffff;
+  --appwin-raised: #f1f5f9;
+  --appwin-text: #0f172a;
+  --appwin-muted: #334155;
+  --appwin-subtle: #94a3b8;
+  --appwin-border: #e2e8f0;
+  --appwin-unread: #e71919;
+  color-scheme: light;
+}
+
+/* The gray vars (surface/raised/text/muted/border) are set from the config's
+   grayWarmth + resolved scheme in theme.ts; the values above are the light
+   fallback shown before that runs. `data-appwin-scheme` keeps the browser's
+   own chrome (textarea, scrollbars) in step with the dark theme. */
+:root[data-appwin-scheme='dark'] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--appwin-page);
+  color: var(--appwin-text);
+  /* Inter Tight to match the design when the host has it; system fallback
+     otherwise (an embedded widget must not force a web-font load past a strict
+     CSP). The 1.3 line-height is the Figma text scale. */
+  font: 400 14px/1.3 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* Nothing shows until the configuration is in: no flash of the wrong brand. */
+body:not([data-state='ready']) #root { visibility: hidden; }
+#root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: inherit; }
+
+/* --- Frame ---------------------------------------------------------- */
+/* Figma blur-top / blur-bottom (40:7153, 40:7358): a 320x200 ellipse of the
+   brand at 24 %, blur 40 (Figma's layer blur 80), centred on the panel's top and
+   bottom edges, behind the bar and the cards. */
+.home-glow {
+  position: fixed;
+  left: 50%;
+  width: 320px;
+  height: 200px;
+  margin-left: -160px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--appwin-primary) 24%, transparent);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+.home-glow.top { top: -100px; }
+.home-glow.bottom { bottom: -100px; }
+.appbar, .body { position: relative; z-index: 1; }
+.appbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px calc(14px + env(safe-area-inset-top, 0px));
+  /* Transparent: the panel is already bg/page, and the home glow shows through. */
+  background: transparent;
+  color: var(--appwin-text);
+  flex: none;
+}
+.appbar-title {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.icon-button {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.icon-button:hover { background: rgb(128 128 128 / 0.18); }
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* Each screen fades and lifts in on navigation. Keyed remount in app.tsx
+   replays it; the container is a transparent flex passthrough. */
+.screen-swap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  animation: appwin-screen-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes appwin-screen-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen-swap { animation: none; }
+}
+.screen { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+/* --- Shared bits ---------------------------------------------------- */
+.avatar { border-radius: 50%; object-fit: cover; flex: none; }
+/* Figma Profile avatar: the brand at 24 % over the surface, and the initials
+   drawn twice in place, brand at 16 % under text at 12 % (the ::after). */
+.avatar-fallback {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--appwin-primary) 24%, transparent),
+      color-mix(in srgb, var(--appwin-primary) 24%, transparent)
+    ),
+    var(--appwin-surface);
+  color: color-mix(in srgb, var(--appwin-primary) 16%, transparent);
+  font-weight: 800;
+}
+.avatar-fallback::after {
+  content: attr(data-initials);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--appwin-text) 12%, transparent);
+}
+.unread-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--appwin-unread);
+  flex: none;
+}
+.spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid var(--appwin-border);
+  border-top-color: var(--appwin-primary);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+.centered {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+.centered.thin { flex: none; padding: 12px; }
+.failure-title { margin: 0; font-weight: 600; }
+.failure-body { margin: 0; color: var(--appwin-muted); }
+.button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-primary);
+  color: var(--appwin-primary-foreground);
+  font-weight: 600;
+}
+
+/* --- Home ----------------------------------------------------------- */
+/* --- Banner ---------------------------------------------------------
+   A transcription of Figma BannerForSupport (441:6615), the same one the
+   dashboard preview and the iOS SDK render. The percentages live in
+   `banner.tsx`; what is here is only the plumbing they need. */
+.banner {
+  position: relative;
+  aspect-ratio: 280 / 91;
+  border-radius: var(--appwin-radius);
+  overflow: hidden;
+  background-color: var(--appwin-raised);
+  flex: none;
+}
+.banner-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+.banner-layer { position: absolute; }
+.tile-slot {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.tile {
+  position: relative;
+  flex: none;
+  transform: rotate(-8deg);
+  /* The tile is Figma's rotated frame: its box is the hypotenuse of the
+     slot. The first pair is the fallback for a browser without `hypot()`
+     (Chrome < 111, Safari < 15.4) - close enough that the grid holds. */
+  width: 88cqw;
+  height: 88cqh;
+  width: hypot(87.6777cqw, 12.3223cqh);
+  height: hypot(12.3223cqw, 87.6777cqh);
+}
+.tile-empty {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.05);
+}
+.banner-photo {
+  position: absolute;
+  top: -260.51%;
+  bottom: -101.03%;
+  left: 50%;
+  transform: translateX(-50%);
+  aspect-ratio: 500 / 750;
+}
+.banner-badge {
+  position: absolute;
+  top: 24.62%;
+  bottom: 24.1%;
+  left: 50%;
+  transform: translateX(-50%);
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+.greeting { margin: 0; font-size: 32px; font-weight: 500; line-height: 1.05; }
+.greeting-line { margin: 0; }
+.welcome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-raised);
+  color: var(--appwin-muted);
+}
+.welcome p { margin: 0; flex: 1; min-width: 0; font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; }
+/* Cards are the Figma bg/container (white) on the bg/page panel: no border and
+   no shadow, the contrast is the surface/page difference (support-home 40:6481). */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-surface);
+  text-align: left;
+}
+.card:hover { background: var(--appwin-raised); }
+/* The fill comes from the configuration (flat, or the studio's gradient),
+   so only the ring and the lift are here. Same two shadows as the
+   dashboard preview. */
+.card.cta {
+  border-color: transparent;
+  color: var(--appwin-primary-foreground);
+  font-weight: 500;
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 255 255 / 0.2),
+    0 4px 8px rgb(2 6 23 / 0.1);
+}
+.card.cta:hover { filter: brightness(0.97); }
+.card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.card-label { font-size: 12px; color: var(--appwin-muted); }
+.card-title { flex: 1; font-size: 14px; font-weight: 500; }
+.card-preview, .row-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 12px;
+  color: var(--appwin-muted);
+}
+/* FAQ (Figma support-home 40:7225): a titled section under a divider, each
+   category a light label over card rows that match the message cards. */
+.section-title { margin: 0; font-size: 24px; font-weight: 500; line-height: 1; color: var(--appwin-text); }
+.faq-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 4px;
+  padding-top: 24px;
+  border-top: 1px solid var(--appwin-border);
+}
+.faq-group { display: flex; flex-direction: column; gap: 6px; }
+.faq-category { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: var(--appwin-subtle); }
+.faq-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-surface);
+  text-align: left;
+  font-weight: 500;
+}
+.faq-row:hover { background: var(--appwin-raised); }
+.faq-question { flex: 1; min-width: 0; }
+
+/* --- Lists ---------------------------------------------------------- */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--appwin-border);
+  background: transparent;
+  text-align: left;
+}
+.row:hover { background: var(--appwin-raised); }
+.row-text { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.badge-status {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--appwin-border);
+  font-size: 11px;
+  color: var(--appwin-muted);
+}
+.empty { align-items: center; justify-content: center; text-align: center; color: var(--appwin-muted); }
+.empty-title { margin: 0; font-weight: 600; color: var(--appwin-text); }
+.empty-body { margin: 0; }
+
+/* --- Article -------------------------------------------------------- */
+/* The question sits in a brand-soft pill (Figma bg/brand-soft = the studio's
+   colour at 24%), rounded like every other card (support-convo 40:7605). */
+.article-question {
+  margin: 0;
+  padding: 20px;
+  border-radius: var(--appwin-radius);
+  background: color-mix(in srgb, var(--appwin-primary) 24%, transparent);
+  color: var(--appwin-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.article-body {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.36;
+  color: var(--appwin-muted);
+}
+
+/* --- Thread --------------------------------------------------------- */
+.thread { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.thread-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* A short thread sits on the composer, as every messenger does. On the
+   container `justify-content: flex-end` would cut the top off once the
+   history overflows; pushing the first child down does not. */
+.thread-scroll > :first-child { margin-top: auto; }
+.day { display: flex; flex-direction: column; gap: 8px; }
+.day-label { margin: 0 0 2px; text-align: center; font-size: 11px; color: var(--appwin-muted); }
+.bubble-row { display: flex; gap: 8px; align-items: flex-end; }
+.bubble-row.mine { justify-content: flex-end; }
+.bubble-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 78%;
+  align-items: flex-start;
+}
+.bubble-row.mine .bubble-column { align-items: flex-end; }
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-raised);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.bubble-row.mine .bubble {
+  background: var(--appwin-primary);
+  color: var(--appwin-primary-foreground);
+}
+/* --- Message actions ------------------------------------------------ */
+.actions { display: flex; flex-direction: column; gap: 6px; align-items: inherit; }
+.pill {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--appwin-border);
+  border-radius: 999px;
+  background: var(--appwin-surface);
+  box-shadow: 0 2px 8px rgb(2 6 23 / 0.08);
+}
+.pill-emoji {
+  border: 0;
+  border-radius: 50%;
+  padding: 3px 5px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+}
+.pill-emoji:hover, .pill-emoji.on { background: var(--appwin-border); }
+.pill-action {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+}
+.pill-action:hover { background: var(--appwin-border); }
+.pill-action.danger { color: var(--appwin-unread); }
+.bubble-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+.bubble-footer:empty { display: none; }
+.reactions { display: flex; gap: 4px; }
+.reaction {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border: 1px solid var(--appwin-border);
+  border-radius: 999px;
+  background: var(--appwin-surface);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.reaction.on { border-color: var(--appwin-primary); }
+.reaction-count { color: var(--appwin-muted); font-size: 11px; }
+.link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--appwin-muted);
+  font-size: 11px;
+  text-decoration: underline;
+}
+.bubble-body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble-time { font-size: 10px; opacity: 0.65; align-self: flex-end; }
+.attachment-image img { display: block; max-width: 100%; border-radius: 8px; }
+.attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(128 128 128 / 0.16);
+  text-decoration: none;
+}
+.attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-size { flex: none; font-size: 11px; opacity: 0.7; }
+.typing { display: flex; gap: 4px; padding: 4px 2px; }
+.typing span {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--appwin-muted);
+  animation: blink 1.2s infinite ease-in-out;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+/* --- Composer ------------------------------------------------------- */
+.composer {
+  flex: none;
+  border-top: 1px solid var(--appwin-border);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--appwin-surface);
+}
+.composer-row { display: flex; align-items: flex-end; gap: 8px; }
+.composer-input {
+  flex: 1;
+  min-height: 38px;
+  max-height: 120px;
+  padding: 9px 12px;
+  border: 1px solid var(--appwin-border);
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-surface);
+  color: inherit;
+  font: inherit;
+  resize: none;
+}
+.composer-input:focus { outline: 2px solid var(--appwin-primary); outline-offset: -1px; }
+.send {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--appwin-primary);
+  color: var(--appwin-primary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.send:disabled { opacity: 0.45; cursor: default; }
+.composer-files { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+.composer-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--appwin-raised);
+  font-size: 12px;
+}
+.composer-file-remove { border: 0; background: transparent; padding: 0 2px; font-size: 15px; }
+.composer-error { margin: 0 0 8px; font-size: 12px; color: var(--appwin-unread); }
+.composer-editing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 5px 10px;
+  border-radius: var(--appwin-radius);
+  background: var(--appwin-raised);
+  font-size: 12px;
+  color: var(--appwin-muted);
+}
